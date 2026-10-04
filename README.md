@@ -14,6 +14,8 @@ A local library for SillyTavern characters, WorldBooks, presets, themes and rege
 
 ## Install and Run
 
+Requires Node.js 22.12 or later.
+
 ```
 npm install
 npm run dev

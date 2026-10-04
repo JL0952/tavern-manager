@@ -1,6 +1,9 @@
 {
   "name": "tavern-manager",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "workspaces": [
     "client",
     "server"
