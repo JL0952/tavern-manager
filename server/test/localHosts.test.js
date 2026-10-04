@@ -50,8 +50,8 @@ test("a rebound domain gets nothing, even for reads", async () => {
   }
 });
 
-test("app.js checks the host before every other middleware", async () => {
+test("app.js checks the host right after the peer address, before every other middleware", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  const firstUse = source.indexOf("app.use(");
-  assert.equal(source.indexOf("app.use(localHosts)"), firstUse);
+  const uses = [...source.matchAll(/app\.use\(/g)].map((match) => match.index);
+  assert.equal(source.indexOf("app.use(localHosts)"), uses[1]);
 });

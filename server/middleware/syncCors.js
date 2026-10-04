@@ -27,14 +27,21 @@ function isLocalIPv4(hostname) {
   );
 }
 
-function isLocalIPv6(hostname) {
-  if (!hostname.startsWith("[") || !hostname.endsWith("]")) {
+function isLocalIPv6(address) {
+  const lower = address.toLowerCase();
+  // Loopback, unique local fc00::/7, link-local fe80::/10.
+  return lower === "::1" || /^f[cd][0-9a-f]{2}:/.test(lower) || /^fe[89ab][0-9a-f]:/.test(lower);
+}
+
+// A peer address as Node reports it: IPv4, IPv6 (link-local ones may carry a
+// %zone) or IPv4-mapped IPv6 such as ::ffff:192.168.1.20.
+export function isLocalNetworkAddress(address) {
+  if (typeof address !== "string") {
     return false;
   }
 
-  const address = hostname.slice(1, -1).toLowerCase();
-  // Loopback, unique local fc00::/7, link-local fe80::/10.
-  return address === "::1" || /^f[cd][0-9a-f]{2}:/.test(address) || /^fe[89ab][0-9a-f]:/.test(address);
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+  return isLocalIPv4(mapped ? mapped[1] : address) || isLocalIPv6(address);
 }
 
 export function isLocalNetworkOrigin(origin) {
@@ -60,7 +67,7 @@ export function isLocalNetworkOrigin(origin) {
     url.hostname === "localhost" ||
     url.hostname.endsWith(".local") ||
     isLocalIPv4(url.hostname) ||
-    isLocalIPv6(url.hostname)
+    (url.hostname.startsWith("[") && url.hostname.endsWith("]") && isLocalIPv6(url.hostname.slice(1, -1)))
   );
 }
 

@@ -1,5 +1,6 @@
 import express from "express";
 import { fileURLToPath } from "node:url";
+import localClients from "./middleware/localClients.js";
 import localHosts from "./middleware/localHosts.js";
 import localWrites from "./middleware/localWrites.js";
 import syncCors, { relayCors } from "./middleware/syncCors.js";
@@ -19,7 +20,9 @@ const port = process.env.PORT || 3000;
 const host = process.env.HOST || "127.0.0.1";
 const bodyLimit = "10mb";
 
-// First, so a request under an unknown host name reaches nothing, files included.
+// First, so a peer outside the local network reaches nothing, files included.
+app.use(localClients);
+// Then, so a request under an unknown host name reaches nothing either.
 app.use(localHosts);
 // Before body parsing so sync errors (invalid JSON, 413) stay readable cross-origin.
 app.use("/api/sync/v1", syncCors);
