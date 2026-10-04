@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.DS_Store
+
+data/cards/*
+!data/cards/.gitkeep
+data/worldbooks/*
+!data/worldbooks/.gitkeep
+data/avatars/*
+!data/avatars/.gitkeep
+data/db.json
+data/relay/
+tmp/
+data/backups/
+
+CURRENT_STATE.md
+PROJECT_SPEC.md
