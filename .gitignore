@@ -13,6 +13,3 @@ data/auth.json
 data/relay/
 tmp/
 data/backups/
-
-CURRENT_STATE.md
-PROJECT_SPEC.md

@@ -124,7 +124,7 @@ test("ten wrong passwords lock that device out for ten minutes", async (t) => {
 test("app.js asks for the password after serving the page and before every library route", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   const gate = source.indexOf("app.use(requirePassword)");
-  assert.ok(gate > source.indexOf("app.use(express.static(pageDirectory))"));
+  assert.ok(gate > source.indexOf("app.use(managerPage)"));
   assert.ok(gate > source.indexOf("app.use(localWrites)"));
   for (const route of ["relayRouter", "authRouter", "cardsRouter", "backupRouter", "libraryGraphRouter", "statsRouter",
     "syncRouter", "tagsRouter", "worldbooksRouter", '"/avatars"']) {

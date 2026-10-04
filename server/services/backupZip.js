@@ -155,6 +155,17 @@ export async function listZipEntries(zipPath) {
   }
 }
 
+// A deflated entry may not unpack past the size the archive gives it, so a
+// crafted backup cannot fill memory before the size check.
+function inflateEntry(entry, data) {
+  try {
+    return inflateRawSync(data, { maxOutputLength: Math.max(entry.size, 1) });
+  } catch (error) {
+    if (error.code === "ERR_BUFFER_TOO_LARGE") throw new Error(`Zip entry ${entry.name} unpacks larger than it says.`);
+    throw error;
+  }
+}
+
 // Extracts every entry under destination. Names were checked before; an
 // entry that would still land outside destination stops the extraction.
 export async function extractZip(zipPath, destination) {
@@ -182,7 +193,7 @@ export async function extractZip(zipPath, destination) {
       if (local.readUInt32LE(0) !== localHeaderSignature) throw new Error(`Zip entry ${entry.name} is damaged.`);
       const dataOffset = entry.localOffset + 30 + local.readUInt16LE(26) + local.readUInt16LE(28);
       const data = await readAt(handle, dataOffset, entry.compressedSize);
-      const contents = entry.method === 8 ? inflateRawSync(data) : data;
+      const contents = entry.method === 8 ? inflateEntry(entry, data) : data;
 
       if (contents.length !== entry.size || getCrc32(contents) !== entry.crc) {
         throw new Error(`Zip entry ${entry.name} is damaged.`);

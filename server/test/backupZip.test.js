@@ -124,6 +124,22 @@ test("damaged, foreign and escaping archives are refused", async (t) => {
   assert.equal(await readFile(join(directory, "dots", "..notes.txt"), "utf8"), "fine");
 });
 
+test("an entry that unpacks larger than it says is refused before it fills memory", async (t) => {
+  const directory = await temporaryDirectory(t);
+  const source = join(directory, "source");
+  await mkdir(join(source, "relay"), { recursive: true });
+  await writeFile(join(source, "relay", "big.json"), "x".repeat(1024 * 1024));
+  const zipPath = join(directory, "oversized.zip");
+  await writeZip(zipPath, source, ["relay"]);
+
+  // Claim 16 bytes in the central directory, where extraction reads sizes.
+  const bytes = await readFile(zipPath);
+  bytes.writeUInt32LE(16, bytes.lastIndexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 24);
+  await writeFile(zipPath, bytes);
+  await assert.rejects(extractZip(zipPath, join(directory, "out")), /big\.json unpacks larger than it says/);
+  assert.equal(existsSync(join(directory, "out", "relay", "big.json")), false);
+});
+
 test("backup routes run no external zip programs", async () => {
   const source = await readFile(new URL("../routes/backup.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /child_process|\/usr\/bin|execFile/);

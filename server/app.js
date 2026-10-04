@@ -1,10 +1,12 @@
 import express from "express";
 import { existsSync } from "node:fs";
 import { networkInterfaces } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import localClients from "./middleware/localClients.js";
 import localHosts from "./middleware/localHosts.js";
 import localWrites from "./middleware/localWrites.js";
+import managerPage, { defaultPageDirectory } from "./middleware/managerPage.js";
 import requirePassword from "./middleware/requirePassword.js";
 import syncCors, { isLocalNetworkAddress, loginCors, relayCors } from "./middleware/syncCors.js";
 import authRouter from "./routes/auth.js";
@@ -25,9 +27,7 @@ const port = process.env.PORT || 3000;
 // the Manager password.
 const host = process.env.HOST || "";
 const bodyLimit = "10mb";
-// The built Manager page (npm start builds it; npm run dev serves it on 5173).
-const pageDirectory = fileURLToPath(new URL("../client/dist", import.meta.url));
-const pageIndex = fileURLToPath(new URL("../client/dist/index.html", import.meta.url));
+const pageIndex = join(defaultPageDirectory, "index.html");
 
 // First, so a peer outside the local network reaches nothing, files included.
 app.use(localClients);
@@ -44,21 +44,8 @@ app.use("/api/relay/v1", relayCors);
 app.use("/api/auth/login", loginCors);
 // Before body parsing and uploads so a refused write is never read or stored.
 app.use(localWrites);
-// The page's own files hold no library data: a device that has not signed in
-// yet gets them too, to show the sign-in form. Its client-side routes all
-// answer with index.html.
-app.use(express.static(pageDirectory));
-app.use((request, response, next) => {
-  if (!["GET", "HEAD"].includes(request.method) || /^\/(api|avatars)(\/|$)/.test(request.path)) {
-    return next();
-  }
-
-  return response.sendFile(pageIndex, (error) => {
-    if (error && !response.headersSent) {
-      response.status(404).type("text").send("The Manager page is not built yet. Start Manager with npm start.");
-    }
-  });
-});
+// The page's own files, open to a device that has not signed in yet.
+app.use(managerPage);
 // Before body parsing and uploads, like localWrites.
 app.use(requirePassword);
 // Before the JSON parser: a relay file is stored exactly as it was sent.

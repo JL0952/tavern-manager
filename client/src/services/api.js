@@ -17,15 +17,20 @@ async function apiFetch(path, options) {
   throw error;
 }
 
+// Library routes answer errors as { error: "message" }.
+async function responseError(response) {
+  const body = await response.json().catch(() => null);
+  const error = new Error(body?.error || `Request failed with status ${response.status}`);
+  error.status = response.status;
+  error.body = body;
+  return error;
+}
+
 async function request(path, options) {
   const response = await apiFetch(path, options);
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
+    throw await responseError(response);
   }
 
   return response.json();
@@ -72,18 +77,19 @@ async function downloadResponse(response, fallbackName) {
   URL.revokeObjectURL(objectUrl);
 }
 
-export async function downloadBackup() {
-  const response = await apiFetch("/api/backup/export");
+// Saves what Manager answers as a file, named as Manager suggests.
+async function download(path, fallbackName, options) {
+  const response = await apiFetch(path, options);
 
   if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
+    throw await responseError(response);
   }
 
-  await downloadResponse(response, "tavern-manager-backup.zip");
+  await downloadResponse(response, fallbackName);
+}
+
+export function downloadBackup() {
+  return download("/api/backup/export", "tavern-manager-backup.zip");
 }
 
 export function importBackup(file) {
@@ -154,17 +160,6 @@ export function createWorldBook(payload) {
     },
     body: JSON.stringify(payload),
   });
-}
-
-export function getWorldBookEntries(id, { search } = {}) {
-  const query = new URLSearchParams();
-
-  if (search) {
-    query.set("search", search);
-  }
-
-  const suffix = query.size ? `?${query.toString()}` : "";
-  return request(`/api/worldbooks/${encodeURIComponent(id)}/entries${suffix}`);
 }
 
 export function getRpStats() {
@@ -271,38 +266,21 @@ function sanitizeDownloadName(name, fallbackName) {
   return sanitizedName || "worldbook";
 }
 
-export async function downloadWorldBook(id, fallbackName) {
-  const response = await apiFetch(`/api/worldbooks/${encodeURIComponent(id)}/export`);
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
-  }
-
-  await downloadResponse(response, `${sanitizeDownloadName(fallbackName)}.json`);
+export function downloadWorldBook(id, fallbackName) {
+  return download(
+    `/api/worldbooks/${encodeURIComponent(id)}/export`,
+    `${sanitizeDownloadName(fallbackName)}.json`,
+  );
 }
 
-export async function downloadWorldBookBatch(ids) {
-  const response = await apiFetch("/api/worldbooks/export/batch", {
+export function downloadWorldBookBatch(ids) {
+  return download("/api/worldbooks/export/batch", "worldbooks-export.zip", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ ids }),
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
-  }
-
-  await downloadResponse(response, "worldbooks-export.zip");
 }
 
 export function deleteWorldBookBatch(ids) {
@@ -326,40 +304,21 @@ export function importCharacterCard(file, duplicateOptions = {}) {
   });
 }
 
-export async function downloadCharacterCard(id, format) {
-  const response = await apiFetch(
+export function downloadCharacterCard(id, format) {
+  return download(
     `/api/cards/${encodeURIComponent(id)}/export?format=${encodeURIComponent(format)}`,
+    `character-card.${format}`,
   );
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
-  }
-
-  await downloadResponse(response, `character-card.${format}`);
 }
 
-export async function downloadCharacterBatch(ids, format) {
-  const response = await apiFetch("/api/cards/export/batch", {
+export function downloadCharacterBatch(ids, format) {
+  return download("/api/cards/export/batch", "characters-export.zip", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ ids, format }),
   });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    const error = new Error(body?.error || `Request failed with status ${response.status}`);
-    error.status = response.status;
-    error.body = body;
-    throw error;
-  }
-
-  await downloadResponse(response, "characters-export.zip");
 }
 
 export function deleteCharacterBatch(ids) {
