@@ -18,18 +18,12 @@ Requires Node.js 22.12 or later.
 
 ```
 npm install
-npm run dev
+npm start
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:3000`.
 
-To open Manager from a phone or another computer on the same network:
-
-```
-npm run dev:lan
-```
-
-Then open `http://<computer-ip>:5173` on that device. Without `dev:lan`, only this computer can reach Manager.
+To use Manager from a phone or another computer on the same network, click **Password** in Manager and set one. Then open `http://<computer-ip>:3000` on that device and sign in. The computer running Manager never needs the password. Manager prints its network addresses when it starts.
 
 Manager won't start while something else uses port `3000`, such as another Manager left running.
 
@@ -38,7 +32,7 @@ Manager won't start while something else uses port `3000`, such as another Manag
 1. In SillyTavern or TauriTavern, open **Extensions → Install Extension** and enter `https://github.com/JL0952/tavern-manager-sync`.
 2. In the extension, set the Manager endpoint and click **Save**:
    - Same computer: `http://127.0.0.1:3000/api/sync/v1`
-   - Another device: `http://<computer-ip>:3000/api/sync/v1` (start Manager with `npm run dev:lan`)
+   - Another device: `http://<computer-ip>:3000/api/sync/v1`, and enter the Manager password
 
 3. Click **Refresh**, pick a tab, then **Push** or **Pull**.
 
@@ -47,7 +41,7 @@ Manager won't start while something else uses port `3000`, such as another Manag
 - Everything is stored in the `data` folder on this computer and is never committed to git.
 - Presets are kept as SillyTavern saves them, including any reverse proxy address and password.
 - Export a backup (**Backup → Export Backup**) before large batch actions.
-- With `npm run dev:lan`, any device on your network can reach Manager without a password. Use it only on networks you trust.
+- Other devices need the Manager password; devices outside your local network can't connect at all. Manager uses plain `http`, so use it on networks you trust.
 
 ## Known Limitations
 
@@ -60,5 +54,6 @@ Manager won't start while something else uses port `3000`, such as another Manag
 ## Development
 
 - `npm test` runs the server tests. Set `ST_SYNC_BROWSER_ROOT` to the extension folder to include the tests that check it.
+- `npm run dev` runs Manager with live reload; open `http://localhost:5173`.
 - `npm run build` builds the web UI.
 - Code shared with the extension lives in `server/services` (see `server/scripts/exportSyncCore.js`). After changing it, run `npm run sync-core:export -- <extension folder>`.

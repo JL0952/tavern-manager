@@ -141,7 +141,7 @@ test("SillyTavern and TauriTavern pages may upload with the relay headers; inter
     assert.equal(preflight.status, 204, origin);
     assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
     assert.equal(preflight.headers.get("access-control-allow-methods"), "GET, POST");
-    assert.equal(preflight.headers.get("access-control-allow-headers"), "Content-Type, X-Content-Hash, X-Relay-Source");
+    assert.equal(preflight.headers.get("access-control-allow-headers"), "Content-Type, X-Content-Hash, X-Relay-Source, X-Manager-Token");
     const created = await upload("presets", `From ${origin}`, "{}", { headers: { Origin: origin } });
     assert.equal(created.status, 201);
     assert.equal(created.headers.get("access-control-allow-origin"), origin);

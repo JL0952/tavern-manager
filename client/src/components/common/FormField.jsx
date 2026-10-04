@@ -1,10 +1,12 @@
 function FormField({
+  autoComplete,
   autoFocus = false,
   label,
   onChange,
   placeholder = "",
   required = false,
   textarea = false,
+  type = "text",
   value,
 }) {
   const sharedClasses =
@@ -27,9 +29,10 @@ function FormField({
         />
       ) : (
         <input
+          autoComplete={autoComplete}
           autoFocus={autoFocus}
           className={sharedClasses}
-          type="text"
+          type={type}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}

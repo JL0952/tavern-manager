@@ -1,8 +1,9 @@
-// CORS for the two APIs the SillyTavern extension calls directly from the
-// browser: /api/sync/v1 and /api/relay/v1. Manager's access model is the
-// trusted LAN, so a page served from the local network (localhost, a
+// CORS for the APIs the SillyTavern extension calls directly from the
+// browser: /api/sync/v1, /api/relay/v1 and signing in at /api/auth/login.
+// Manager serves the local network, so a page served from it (localhost, a
 // loopback/private/link-local IP literal, or a .local mDNS name) or by a
-// TauriTavern app may read their responses. Internet origins stay blocked by
+// TauriTavern app may read their responses; other devices still need the
+// Manager password. Internet origins stay blocked by
 // the browser exactly as before. No wildcard, no credentials, no
 // configuration, and no other Manager route is affected.
 
@@ -103,13 +104,16 @@ export function createLocalNetworkCors({ methods, headers }) {
   };
 }
 
-const syncCors = createLocalNetworkCors({ methods: "GET, POST, PUT", headers: "Content-Type" });
+const syncCors = createLocalNetworkCors({ methods: "GET, POST, PUT", headers: "Content-Type, X-Manager-Token" });
 
 // Relay uploads name their file and hash in headers; Manager deletes them only
 // from its own page.
 export const relayCors = createLocalNetworkCors({
   methods: "GET, POST",
-  headers: "Content-Type, X-Content-Hash, X-Relay-Source",
+  headers: "Content-Type, X-Content-Hash, X-Relay-Source, X-Manager-Token",
 });
+
+// The extension signs in from another device with the Manager password.
+export const loginCors = createLocalNetworkCors({ methods: "POST", headers: "Content-Type" });
 
 export default syncCors;

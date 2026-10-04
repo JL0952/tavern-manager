@@ -3,14 +3,17 @@ import { useEffect, useState } from "react";
 import BackupMenu from "./components/BackupMenu.jsx";
 import { Button } from "./components/common/index.js";
 import { HeaderActionsContext } from "./components/LibraryNav.jsx";
+import PasswordMenu from "./components/PasswordMenu.jsx";
 import RpStatsDrawer from "./components/RpStatsDrawer.jsx";
 import TagManagerDrawer from "./components/TagManagerDrawer.jsx";
 import DetailPage from "./pages/DetailPage.jsx";
 import FilesPage from "./pages/FilesPage.jsx";
 import GraphPage from "./pages/GraphPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import SignInPage from "./pages/SignInPage.jsx";
 import WorldBookDetailPage from "./pages/WorldBookDetailPage.jsx";
 import WorldBookPage from "./pages/WorldBookPage.jsx";
+import { getAuthStatus, signedOutEvent } from "./services/api.js";
 
 const themeStorageKey = "tavern-manager-theme";
 
@@ -25,6 +28,8 @@ function App() {
   const [tagManagerOpen, setTagManagerOpen] = useState(false);
   const [dataVersion, setDataVersion] = useState(0);
   const [theme, setTheme] = useState(getInitialTheme);
+  // { local, passwordSet, signedIn }; null until Manager answers.
+  const [auth, setAuth] = useState(null);
 
   function markDataChanged() {
     setDataVersion((version) => version + 1);
@@ -39,9 +44,47 @@ function App() {
     window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
+  useEffect(() => {
+    let active = true;
+
+    // An unreachable Manager shows its errors on the pages themselves.
+    getAuthStatus()
+      .catch(() => ({ local: false, passwordSet: true, signedIn: true }))
+      .then((status) => active && setAuth(status));
+
+    function signOut() {
+      setAuth((current) => current && { ...current, signedIn: false });
+    }
+
+    window.addEventListener(signedOutEvent, signOut);
+    return () => {
+      active = false;
+      window.removeEventListener(signedOutEvent, signOut);
+    };
+  }, []);
+
+  if (!auth) {
+    return null;
+  }
+
+  if (!auth.signedIn) {
+    return (
+      <SignInPage
+        passwordSet={auth.passwordSet}
+        onSignedIn={() => setAuth((current) => ({ ...current, signedIn: true }))}
+      />
+    );
+  }
+
   // Shown in each page's top bar.
   const headerActions = (
     <>
+      {auth.local && (
+        <PasswordMenu
+          passwordSet={auth.passwordSet}
+          onChange={(passwordSet) => setAuth((current) => ({ ...current, passwordSet }))}
+        />
+      )}
       <BackupMenu />
       <Button
         aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}

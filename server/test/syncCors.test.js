@@ -43,7 +43,7 @@ test("sync preflight from a LAN SillyTavern page is answered with that exact ori
     assert.equal(response.status, 204);
     assert.equal(response.headers.get("access-control-allow-origin"), "http://192.168.1.20:8000");
     assert.equal(response.headers.get("access-control-allow-methods"), "GET, POST, PUT");
-    assert.equal(response.headers.get("access-control-allow-headers"), "Content-Type");
+    assert.equal(response.headers.get("access-control-allow-headers"), "Content-Type, X-Manager-Token");
     assert.equal(response.headers.get("access-control-allow-private-network"), "true");
     assert.equal(response.headers.get("access-control-allow-credentials"), null);
     assert.match(response.headers.get("vary"), /Origin/);

@@ -1,5 +1,24 @@
-async function request(path, options) {
+// Fired when Manager asks this device for its password (a request from
+// another device that has not signed in, or whose password was changed).
+export const signedOutEvent = "manager:signed-out";
+
+async function apiFetch(path, options) {
   const response = await fetch(path, options);
+
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const body = await response.json().catch(() => null);
+  window.dispatchEvent(new Event(signedOutEvent));
+  const error = new Error(body?.error?.message || "Enter the Manager password.");
+  error.status = 401;
+  error.body = body;
+  throw error;
+}
+
+async function request(path, options) {
+  const response = await apiFetch(path, options);
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -54,7 +73,7 @@ async function downloadResponse(response, fallbackName) {
 }
 
 export async function downloadBackup() {
-  const response = await fetch("/api/backup/export");
+  const response = await apiFetch("/api/backup/export");
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -253,7 +272,7 @@ function sanitizeDownloadName(name, fallbackName) {
 }
 
 export async function downloadWorldBook(id, fallbackName) {
-  const response = await fetch(`/api/worldbooks/${encodeURIComponent(id)}/export`);
+  const response = await apiFetch(`/api/worldbooks/${encodeURIComponent(id)}/export`);
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -267,7 +286,7 @@ export async function downloadWorldBook(id, fallbackName) {
 }
 
 export async function downloadWorldBookBatch(ids) {
-  const response = await fetch("/api/worldbooks/export/batch", {
+  const response = await apiFetch("/api/worldbooks/export/batch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -308,7 +327,7 @@ export function importCharacterCard(file, duplicateOptions = {}) {
 }
 
 export async function downloadCharacterCard(id, format) {
-  const response = await fetch(
+  const response = await apiFetch(
     `/api/cards/${encodeURIComponent(id)}/export?format=${encodeURIComponent(format)}`,
   );
 
@@ -324,7 +343,7 @@ export async function downloadCharacterCard(id, format) {
 }
 
 export async function downloadCharacterBatch(ids, format) {
-  const response = await fetch("/api/cards/export/batch", {
+  const response = await apiFetch("/api/cards/export/batch", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -422,7 +441,7 @@ export function deleteCard(id) {
 // Relay files: Manager stores presets, themes and regex scripts unchanged.
 // Its errors are { error: { code, message, ... } }.
 async function relayFetch(path, options) {
-  const response = await fetch(path, options);
+  const response = await apiFetch(path, options);
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
@@ -478,4 +497,45 @@ export async function downloadRelayBatch(type, ids) {
 
 export async function deleteRelayFile(type, id) {
   await relayFetch(relayPath(type, `/${encodeURIComponent(id)}`), { method: "DELETE" });
+}
+
+// Signing in from another device and the password itself, which only this
+// computer changes. Their errors are { error: { code, message } }; a wrong
+// password is not a sign-out, so these skip apiFetch.
+async function authRequest(path, options) {
+  const response = await fetch(path, options);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = new Error(body?.error?.message || `Request failed with status ${response.status}`);
+    error.status = response.status;
+    error.code = body?.error?.code;
+    throw error;
+  }
+
+  return body;
+}
+
+export function getAuthStatus() {
+  return authRequest("/api/auth/status", { cache: "no-store" });
+}
+
+export function signIn(password) {
+  return authRequest("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+}
+
+export function setManagerPassword(password) {
+  return authRequest("/api/auth/password", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+}
+
+export function removeManagerPassword() {
+  return authRequest("/api/auth/password", { method: "DELETE" });
 }

@@ -3,7 +3,7 @@ import { once } from "node:events";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import express from "express";
-import localClients from "../middleware/localClients.js";
+import localClients, { isThisComputer } from "../middleware/localClients.js";
 import { isLocalNetworkAddress } from "../middleware/syncCors.js";
 
 test("loopback, private and link-local peers are local; public and malformed addresses are not", () => {
@@ -53,4 +53,20 @@ test("a real loopback connection gets through", async () => {
 test("app.js checks the peer address before every other middleware", async () => {
   const source = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.equal(source.indexOf("app.use(localClients)"), source.indexOf("app.use("));
+});
+
+test("this computer is loopback or one of its own addresses, however Node spells them", () => {
+  const interfaces = {
+    lo0: [{ address: "127.0.0.1" }, { address: "::1" }],
+    en0: [{ address: "192.168.1.20" }, { address: "fe80::1c2b:3d4e:5f60:7182", scopeid: 4 }, { address: "fd12:3456::20" }],
+  };
+
+  for (const address of ["127.0.0.1", "127.0.0.2", "::1", "::ffff:127.0.0.1", "192.168.1.20", "::ffff:192.168.1.20",
+    "fe80::1c2b:3d4e:5f60:7182%en0", "FD12:3456::20"]) {
+    assert.equal(isThisComputer(address, interfaces), true, address);
+  }
+
+  for (const address of ["192.168.1.21", "::ffff:192.168.1.21", "fd12:3456::21", "10.0.0.1", "", undefined, null]) {
+    assert.equal(isThisComputer(address, interfaces), false, String(address));
+  }
 });

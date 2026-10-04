@@ -10,11 +10,10 @@
   ],
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:lan": "concurrently -n server,client -c blue,green \"HOST=0.0.0.0 npm --workspace server start\" \"npm --workspace client run dev -- --host 0.0.0.0\"",
     "dev:client": "npm --workspace client run dev",
     "dev:server": "npm --workspace server run dev",
     "build": "npm --workspace client run build",
-    "start": "npm --workspace server start",
+    "start": "npm run build && npm --workspace server start",
     "test": "npm --workspace server test",
     "sync-core:export": "node server/scripts/exportSyncCore.js"
   },

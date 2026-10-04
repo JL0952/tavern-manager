@@ -9,6 +9,7 @@ data/worldbooks/*
 data/avatars/*
 !data/avatars/.gitkeep
 data/db.json
+data/auth.json
 data/relay/
 tmp/
 data/backups/
